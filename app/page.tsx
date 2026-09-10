@@ -8,25 +8,30 @@ import {
   ArrowUpRight, MapPin, UserRound, LogOut, LogIn, SlidersHorizontal
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createPickup, declareWaste, getWorkspace } from "@/lib/supabase/data";
 import { CertificatesView, HelpView, HistoryView, PickupView, SettingsView, WasteView } from "@/components/module-views";
 import { createClient } from "@/lib/supabase/client";
+import { endSession, getAccessRole } from "@/lib/access";
+import PortalHome from "@/components/portal-home";
 
 type Waste = { id: string; type: string; quantity: number; unit: string; date: string; status: "Disponible" | "Retiro solicitado" | "Retirado"; code: string };
 
-const initialWaste: Waste[] = [
+const initialWaste: Waste[] = [] as Waste[]; /* Datos cargados desde Supabase */
+/*
   { id: "1", type: "Aceite vegetal usado", quantity: 48, unit: "L", date: "28 ago 2026", status: "Disponible", code: "RES-2026-0842" },
   { id: "2", type: "Cartón y papel", quantity: 120, unit: "kg", date: "24 ago 2026", status: "Retiro solicitado", code: "RES-2026-0811" },
   { id: "3", type: "Vidrio", quantity: 76, unit: "kg", date: "18 ago 2026", status: "Retirado", code: "RES-2026-0789" },
   { id: "4", type: "Plásticos PET", quantity: 35, unit: "kg", date: "12 ago 2026", status: "Retirado", code: "RES-2026-0756" }
-];
+*/
 
 const nav = [
   ["Resumen", Home], ["Mis residuos", Recycle], ["Solicitudes", Truck],
   ["Certificados", FileCheck2], ["Historial", History]
 ] as const;
 
-export default function Dashboard() {
+export function Dashboard() {
+  const router = useRouter();
   const [dark, setDark] = useState(false);
   const [active, setActive] = useState("Resumen");
   const [mobile, setMobile] = useState(false);
@@ -36,6 +41,8 @@ export default function Dashboard() {
   const [waste, setWaste] = useState(initialWaste);
   const [query, setQuery] = useState("");
   const [connected, setConnected] = useState(false);
+
+  useEffect(() => { getAccessRole().then(role => { if (role !== "company") router.replace("/login"); }); }, [router]);
 
   useEffect(() => {
     const saved = localStorage.getItem("circular-theme") === "dark";
@@ -73,12 +80,12 @@ export default function Dashboard() {
     catch(error){notify(error instanceof Error?error.message:"No se pudo solicitar el retiro");}
   }
 
-  async function signOut(){ const client=createClient(); if(client) await client.auth.signOut(); setConnected(false); setProfile(false); notify("Sesión cerrada correctamente"); }
+  async function signOut(){ await endSession(); setConnected(false); setProfile(false); router.replace("/login"); }
 
   return (
     <div className="app-shell">
       <aside className={`sidebar ${mobile ? "open" : ""}`}>
-        <div className="brand"><span className="brand-mark"><Recycle size={24}/></span><span>Circular<span>Muni</span></span></div>
+        <div className="brand"><span className="brand-mark"><Recycle size={24}/></span><span className="brand-name" style={{display:"inline",color:"#fff",lineHeight:1}}>Circular<span style={{display:"inline",color:"#63d79a",background:"transparent",border:0,borderRadius:0,width:"auto",height:"auto",padding:0}}>Muni</span></span></div>
         <button className="close-mobile" onClick={() => setMobile(false)} aria-label="Cerrar menú"><X/></button>
         <div className="org-card"><div className="org-icon"><Building2 size={19}/></div><div><small>Empresa</small><strong>Mercado Central SpA</strong><span>RUT 76.432.198-5</span></div></div>
         <nav>
@@ -102,7 +109,7 @@ export default function Dashboard() {
             <button className="icon-btn notification" onClick={() => {setActive("Historial");notify("Mostrando tu actividad reciente")}}><Bell size={19}/><i/></button>
             <div className="profile-wrap">
               <button className="profile" onClick={() => setProfile(!profile)}><span className="avatar">CM</span><span><strong>Carolina Muñoz</strong><small>Administradora</small></span><ChevronDown size={16}/></button>
-              {profile && <div className="profile-menu"><button onClick={() => {setActive("Configuración");setProfile(false)}}><UserRound size={17}/> Mi perfil</button><button onClick={() => {setActive("Configuración");setProfile(false)}}><Settings size={17}/> Preferencias</button><hr/>{connected?<button onClick={signOut}><LogOut size={17}/> Cerrar sesión</button>:<Link href="/login" className="profile-link"><LogIn size={17}/> Ingresar con Supabase</Link>}</div>}
+              {profile && <div className="profile-menu"><button onClick={() => {setActive("Configuración");setProfile(false)}}><UserRound size={17}/> Mi perfil</button><button onClick={() => {setActive("Configuración");setProfile(false)}}><Settings size={17}/> Preferencias</button><hr/><button onClick={signOut}><LogOut size={17}/> Cerrar sesión</button></div>}
             </div>
           </div>
         </header>
@@ -155,4 +162,8 @@ export default function Dashboard() {
       {toast && <div className="toast"><CheckCircle2/>{toast}</div>}
     </div>
   );
+}
+
+export default function Home() {
+  return <PortalHome />;
 }

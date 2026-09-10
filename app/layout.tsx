@@ -3,6 +3,7 @@ import "./globals.css";
 import "./auth.css";
 import "./modules.css";
 import "./municipal.css";
+import "./portal.css";
 
 export const metadata: Metadata = {
   title: "Circular Muni | Gestión de residuos",
